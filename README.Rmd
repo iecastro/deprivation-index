@@ -59,7 +59,6 @@ The function works by using the arguments State and County.  For example:
 ``` {r, echo = TRUE}
 NDI <-tractND("NY","Onondaga") %>%
 as.tibble()
-
 NDI
 ```
 The output variable 'PC1' is the corresponding deprivation index score for each census tract (CT) in the analysis.
