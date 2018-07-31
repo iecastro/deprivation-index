@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "README"
 output: github_document
 ---
 #Using Census estimates to create a deprivation index
@@ -16,8 +16,8 @@ psych by William Revelle (https://personality-project.org/r/psych/)
 library(tidycensus)
 library(tidyverse)
 library(psych)
-
-census_api_key(" ")
+Sys.setenv(RSTUDIO_PANDOC="C:/Program Files/RStudio/bin/pandoc")
+census_api_key("e372e284c5381fe44e39f649bb20dac827bd3a06")
 ```
 Function
 
@@ -50,18 +50,17 @@ NDI <- NDI %>% select(NAME,GEOID,PC1) %>%
 }
 ```
 
-All estimates are from the 2016 American Community Survey (ACS). Before running this script a Census API key is required: https://api.census.gov/data/key_signup.html
+Before running the function script a Census API key is required: https://api.census.gov/data/key_signup.html.  Data collected will be 2016 American Community Survey (ACS) estimates. 
 
-This function will extract census estimates at the tract level, transform the variables, and then perform a Principal Component Analysis.  
+tractND will extract census estimates at the tract level, transform the variables, and then perform a Principal Component Analysis.  
 
 The function works by using the arguments State and County.  For example:
 
 ``` {r, echo = TRUE}
-NDI <-tractND("NY","Onondaga") %>%
-as.tibble()
-NDI
+NDI <-tractND("NY","Onondaga")
+kable(NDI)
 ```
-The output variable 'PC1' is the corresponding deprivation index score for each census tract (CT) in the analysis.
+The output variable 'PC1' is the deprivation index score for each corresponding census tract (CT) in the analysis.
 
 Higher index scores represent higher deprivation.  Here is the distribution of deprivation across Onondaga County, NY 
 
