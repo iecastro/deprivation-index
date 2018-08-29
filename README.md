@@ -73,7 +73,7 @@ NDI <- NDI %>% select(NAME,GEOID,PC1) %>%
 Using function
 ==============
 
-countyND will extract census estimates at the tract level, transform the variables, and then perform a Principal Component Analysis by using the arguments State and County. Since this index has been previously validated, the function only extracts one component.
+`countyND` will extract census estimates at the tract level, transform the variables, and then perform a Principal Component Analysis by using the arguments State and County. Since this index has been previously validated, the function only extracts one component.
 
 Example:
 
@@ -288,7 +288,7 @@ Map %>% filter(as.numeric(TRACTCE) < 6104) %>%
 
 ![](README_figs/README-unnamed-chunk-8-1.png)
 
-Additional examples using countyND()
+Additional examples using `countyND`
 ------------------------------------
 
 Broward County, FL
@@ -327,6 +327,8 @@ ggplot() + geom_sf(data = Map3, aes(fill = PC1)) +
 
 Deprivation Index function for entire State
 -------------------------------------------
+
+`stateND` will perform the same analysis at the tract-level for an entire state.
 
 ``` r
 stateND <- function(arg1){vars <- c("B17001_002", "B17001_001", "B06009_002" , "B06009_001",
@@ -377,5 +379,3 @@ ggplot() + geom_sf(data = MapNY, aes(fill = PC1, color = PC1)) +
 ```
 
 ![](README_figs/README-unnamed-chunk-12-1.png)
-
-### R packages citations
