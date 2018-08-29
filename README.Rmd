@@ -220,7 +220,7 @@ NDI <- NDI %>% select(NAME,GEOID,PC1) %>%
 
 Neighborhood deprivation across New York State
 
-``` {r, echo = TRUE}
+``` {r, echo = TRUE, fig.height= 8, fig.width=10}
 NYND <- stateND("NY")
 tractsNY <- tracts(state = "NY",
                  cb = TRUE)
