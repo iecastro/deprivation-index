@@ -17,11 +17,11 @@ library(knitr)
 Function
 ========
 
-Before running the function script a Census API key is required: <https://api.census.gov/data/key_signup.html>. Data collected will be 2016 American Community Survey (ACS) 5-year estimates.
+Before running the function script a Census API key is required: <https://api.census.gov/data/key_signup.html>. Data fetched are American Community Survey (ACS) 5-year estimates.
 
 The purpose of this function is to minimize the time required to collect data. Extracting all these variables from <https://factfinder.census.gov> is a time consuming process.
 
-Messer and colleagues identified that the principal component extracted from eight specific variables best represent neighborhood-level deprivation. Following their methods, this function first collects census data and calculates the following estimates:
+Messer and colleagues identified that the principal component extracted from eight specific variables best represent neighborhood-level deprivation. Following their methods, this function collects census estimates and calculates the following variables:
 
 % with less than HS degree (25 years and over)
 
@@ -42,7 +42,7 @@ Messer and colleagues identified that the principal component extracted from eig
 Although the tidycensus package has the option to import Census tables into R, I found it easier to look them up online: <https://api.census.gov/data/2016/acs/acs5/variables.html>
 
 ``` r
-tractND <- function(arg1,arg2){vars <- c("B17001_002", "B17001_001", "B06009_002" , "B06009_001",
+countyND <- function(arg1,arg2){vars <- c("B17001_002", "B17001_001", "B06009_002" , "B06009_001",
                                          "B09008_011", "B09008_001","B08124_002", "B08124_001", "B25014_005", 
                                          "B25014_006",  "B25014_007","B25014_011", "B25014_012", "B25014_013",  
                                          "B25014_001", "B19058_002", "B19058_001","C23002C_021", "C23002D_008", 
@@ -73,13 +73,13 @@ NDI <- NDI %>% select(NAME,GEOID,PC1) %>%
 Using function
 ==============
 
-tractND will extract census estimates at the tract level, transform the variables, and then perform a Principal Component Analysis by using the arguments State and County. Since this index has been previously validated, the function only extracts one component.
+countyND will extract census estimates at the tract level, transform the variables, and then perform a Principal Component Analysis by using the arguments State and County. Since this index has been previously validated, the function only extracts one component.
 
 Example:
 
 ``` r
-NDI <-tractND("NY","Onondaga")
-kable(NDI)
+NDI <-countyND("NY","Onondaga")
+kable(NDI, format = "markdown")
 ```
 
 | Tract               | County          | State    | GEOID       |         PC1|
@@ -288,13 +288,13 @@ Map %>% filter(as.numeric(TRACTCE) < 6104) %>%
 
 ![](README_figs/README-unnamed-chunk-8-1.png)
 
-Additional examples using tractND()
------------------------------------
+Additional examples using countyND()
+------------------------------------
 
 Broward County, FL
 
 ``` r
-NDI2 <- tractND("FL","Broward")
+NDI2 <- countyND("FL","Broward")
 tractsFL <- tracts(state = "FL",  county = "Broward",
                  cb = TRUE)
 Map2 <- geo_join(tractsFL,NDI2, by_sp = "GEOID", by_df = "GEOID")
@@ -308,11 +308,11 @@ ggplot() + geom_sf(aes(fill = PC1)) +
 
 ![](README_figs/README-unnamed-chunk-9-1.png)
 
-Virginia Beach County, VA
+Virginia Beach, VA
 
 ``` r
 ### Virgina Beach
-NDI3 <- tractND("VA","Virginia Beach")
+NDI3 <- countyND("VA","Virginia Beach")
 tractsVA <- tracts(state = "VA",  county = "Virginia Beach",
                    cb = TRUE)
 Map3 <- geo_join(tractsVA,NDI3, by_sp = "GEOID", by_df = "GEOID")
@@ -320,7 +320,62 @@ Map3 <- geo_join(tractsVA,NDI3, by_sp = "GEOID", by_df = "GEOID")
 ggplot() + geom_sf(data = Map3, aes(fill = PC1)) +
   theme_minimal() + scale_fill_viridis()+
   labs(fill = "Index", caption = "Source: US Census ACS 2016 estimates")+
-  ggtitle(" ", subtitle = "Virginia Beach County, VA")
+  ggtitle(" ", subtitle = "Virginia Beach, VA")
 ```
 
 ![](README_figs/README-unnamed-chunk-10-1.png)
+
+Deprivation Index function for entire State
+-------------------------------------------
+
+``` r
+stateND <- function(arg1){vars <- c("B17001_002", "B17001_001", "B06009_002" , "B06009_001",
+                                         "B09008_011", "B09008_001","B08124_002", "B08124_001", "B25014_005", 
+                                         "B25014_006",  "B25014_007","B25014_011", "B25014_012", "B25014_013",  
+                                         "B25014_001", "B19058_002", "B19058_001","C23002C_021", "C23002D_008", 
+                                         "C23002C_017", "C23002D_003","B19001_002", "B19001_003", "B19001_004", 
+                                         "B19001_005", "B19001_006", "B19001_001")
+acs_data <- get_acs(geography = "tract", variables =vars,state = arg1,  
+                    output = "wide") %>%
+  mutate(pct_poverty = B17001_002E/B17001_001E,
+         pct_noHS = B06009_002E / B06009_001E,
+         pct_FHH = B09008_011E / B09008_001E,
+         pct_mgmt = B08124_002E /  B08124_001E, 
+         pct_crowd =  (B25014_005E +B25014_006E+ B25014_007E + 
+                         B25014_011E + B25014_012E + B25014_013E) / B25014_001E,
+         pct_pubassist = B19058_002E/B19058_001E,
+         pct_unempl = (C23002C_021E + C23002D_008E)  / (C23002C_017E + C23002D_003E),
+         pct_under30K =( B19001_002E+B19001_003E+B19001_004E+B19001_005E +
+                           B19001_006E) / B19001_001E)
+values  <-  acs_data %>% select(pct_poverty,pct_noHS,pct_FHH,pct_mgmt,pct_crowd,
+                                pct_pubassist, pct_unempl,pct_under30K) %>% as.matrix()
+values[is.nan(values)] <- 0
+ND <- principal(values,nfactors = 1)          
+NDI <- cbind(acs_data,ND$scores) 
+NDI <- NDI %>% select(NAME,GEOID,PC1) %>% 
+  separate(NAME, into = c("Tract", "County","State"), sep = ",")
+}
+```
+
+Neighborhood deprivation across New York State
+
+``` r
+NYND <- stateND("NY")
+tractsNY <- tracts(state = "NY",
+                 cb = TRUE)
+countiesNY <- counties(state = "NY", cb = TRUE)
+
+MapNY <- geo_join(tractsNY,NYND, by_sp = "GEOID", by_df = "GEOID")
+
+ggplot() + geom_sf(data = MapNY, aes(fill = PC1, color = PC1)) +
+  geom_sf(data = countiesNY, fill = NA, color = "#ffffff", size = .3) + 
+  theme_minimal() + theme(axis.text = element_blank(), legend.position = "bottom") +
+  scale_fill_viridis_c(option = "inferno") +
+  scale_color_viridis_c(option = "inferno") +
+  labs(fill = "Index",color = "Index",caption ="Data: 2016 ACS 5-year estimates") +
+  ggtitle(" ", subtitle = "")
+```
+
+![](README_figs/README-unnamed-chunk-12-1.png)
+
+### R packages citations
