@@ -382,3 +382,4 @@ ggplot() + geom_sf(data = MapNY, aes(fill = PC1, color = PC1)) +
 ```
 
 ![](README_figs/README-unnamed-chunk-13-1.png)
+
