@@ -208,6 +208,9 @@ ggplot(NYND, aes(PC1, color = County)) + geom_density() +
   scale_color_viridis_d() +
   labs(x = "Deprivation Index for all Counties in NYS")
 
+```
+
+``` {r, echo = TRUE, fig.height= 8, fig.width=10}
 
 #### map 
 tractsNY <- tracts(state = "NY",
@@ -223,10 +226,6 @@ ggplot() + geom_sf(data = MapNY, aes(fill = PC1, color = PC1)) +
   scale_color_viridis_c(option = "inferno") +
   labs(fill = "Index",color = "Index",caption ="Data: 2016 ACS 5-year estimates") 
 ```
-
-
 ``` {r, echo = FALSE}
 knitr::write_bib(.packages(), "packages.bib") 
 ```
-
-
