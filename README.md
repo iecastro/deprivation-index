@@ -364,3 +364,21 @@ ggplot() + geom_sf(data = MapNY, aes(fill = PC1, color = PC1)) +
 ```
 
 ![](README_figs/README-unnamed-chunk-12-1.png)
+
+``` r
+tractsNY <- tracts(state = "NY",
+                 cb = TRUE)
+countiesNY <- counties(state = "NY", cb = TRUE)
+
+MapNY <- geo_join(tractsNY,NYND, by_sp = "GEOID", by_df = "GEOID")
+
+ggplot() + geom_sf(data = MapNY, aes(fill = PC1, color = PC1)) +
+  geom_sf(data = countiesNY, fill = NA, color = "#ffffff", size = .3) + 
+  theme_minimal() + theme(axis.text = element_blank(), legend.position = "bottom") +
+  scale_fill_viridis_c(option = "inferno") +
+  scale_color_viridis_c(option = "inferno") +
+  labs(fill = "Index",color = "Index",caption ="Data: 2016 ACS 5-year estimates") +
+  ggtitle(" ", subtitle = "")
+```
+
+![](README_figs/README-unnamed-chunk-13-1.png)
