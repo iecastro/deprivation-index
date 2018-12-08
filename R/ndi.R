@@ -33,7 +33,7 @@ ndi <- function(arg1,arg2){
   values[is.nan(values)] <- 0
   ND <- principal(values,nfactors = 1)          
   NDI <- cbind(acs_data,ND$scores) 
-  NDI <- NDI %>% select(NAME,GEOID,NDI,57:64) %>% 
+  NDI <- NDI %>% select(NAME,GEOID,PC1,57:64) %>% 
     separate(NAME, into = c("Tract", "County","State"), sep = ",") %>% 
     mutate(County = str_trim(County), State = str_trim(State)) %>%
     rename(NDI = PC1)  %>% as_tibble() 
