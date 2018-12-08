@@ -2,10 +2,6 @@
 title: " "
 output: github_document
 ---
-# Creating a Deprivation Index in R using Census estimates
-
-This is an R function to extract census variables and calculate a deprivation index. Index is based on methodology by Messer and colleagues (https://www.ncbi.nlm.nih.gov/pubmed/17031568).  Function relies on the packages tidycensus by Kyle Walker (https://walkerke.github.io/tidycensus/) and psych by William Revelle (https://personality-project.org/r/psych/)
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -13,23 +9,17 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE)
 
-Sys.getenv("CENSUS_API_KEY")
-```
-
-
-``````{r, echo = TRUE } 
-library(tidycensus)
-library(tidyverse)
-library(psych)
-library(viridis)
 library(knitr)
 
-## install Census API Key
 ```
 
-# Function
+# Creating a Deprivation Index in R using Census estimates
 
-Before running the function script a Census API key is required: https://api.census.gov/data/key_signup.html.  Data fetched are American Community Survey (ACS) 5-year estimates. 
+This is an R function to extract census variables and calculate a deprivation index. Index is based on methodology by [Messer and colleagues](https://www.ncbi.nlm.nih.gov/pubmed/17031568).  Function relies on the packages [tidycensus](https://walkerke.github.io/tidycensus/) by Kyle Walker and [psych](https://personality-project.org/r/psych/) by William Revelle. 
+
+## Function
+
+Before using the function, a Census API key is required: https://api.census.gov/data/key_signup.html.  Data fetched are American Community Survey (ACS) 5-year estimates. 
 
 The purpose of this function is to minimize the time required to collect data. Extracting all these variables from https://factfinder.census.gov is a time consuming process.  
 
@@ -51,57 +41,25 @@ Messer and colleagues identified that the principal component extracted from eig
 
 % with less than 30K annual household income
 
-Although the tidycensus package has the option to import Census tables into R, I found it easier to look them up online: https://api.census.gov/data/2016/acs/acs5/variables.html
+### Using function
 
+`ndi` will extract census estimates at the tract level, transform the variables, and then perform a Principal Component Analysis by using the arguments *State* and *County*.  Since this index has been previously validated, the function only extracts one component.  
 
+### Examples
 ``` {r, echo = TRUE}
-countyND <- function(arg1,arg2){vars <- c("B17001_002", "B17001_001", "B06009_002" , "B06009_001",
-                                          "B09008_011", "B09008_001","B08124_002", "B08124_001", "B25014_005", 
-                                          "B25014_006",  "B25014_007","B25014_011", "B25014_012", "B25014_013",  
-                                          "B25014_001", "B19058_002", "B19058_001","C23002C_021", "C23002D_008", 
-                                          "C23002C_017", "C23002D_003","B19001_002", "B19001_003", "B19001_004", 
-                                          "B19001_005", "B19001_006", "B19001_001")
-if (missing(arg2)) {
-  arg2 <- NULL
-} else {
-  arg2 <- arg2
-}
+library(tidycensus)
+library(tidyverse)
+library(psych)
 
-acs_data <- get_acs(geography = "tract", variables =vars,state = arg1,  
-                    county = arg2,output = "wide") %>%
-  mutate(pct_poverty = B17001_002E/B17001_001E,
-         pct_noHS = B06009_002E / B06009_001E,
-         pct_FHH = B09008_011E / B09008_001E,
-         pct_mgmt = B08124_002E /  B08124_001E, 
-         pct_crowd =  (B25014_005E +B25014_006E+ B25014_007E + 
-                         B25014_011E + B25014_012E + B25014_013E) / B25014_001E,
-         pct_pubassist = B19058_002E/B19058_001E,
-         pct_unempl = (C23002C_021E + C23002D_008E)  / (C23002C_017E + C23002D_003E),
-         pct_under30K =( B19001_002E+B19001_003E+B19001_004E+B19001_005E +
-                           B19001_006E) / B19001_001E)
-values  <-  acs_data %>% select(pct_poverty,pct_noHS,pct_FHH,pct_mgmt,pct_crowd,
-                                pct_pubassist, pct_unempl,pct_under30K) %>% as.matrix()
-values[is.nan(values)] <- 0
-ND <- principal(values,nfactors = 1)          
-NDI <- cbind(acs_data,ND$scores) 
-NDI <- NDI %>% select(NAME,GEOID,PC1) %>% 
-  separate(NAME, into = c("Tract", "County","State"), sep = ",")
-return(NDI)
-}
+Sys.getenv("CENSUS_API_KEY")
+
+source("R/ndi.R")
+
+ndi("NY","Onondaga")
+
 ```
 
-# Using function
-
-`countyND` will extract census estimates at the tract level, transform the variables, and then perform a Principal Component Analysis by using the arguments State and County.  Since this index has been previously validated, the function only extracts one component.  
-
-Example:
-
-``` {r, echo = TRUE}
-NDI <-countyND("NY","Onondaga")
-kable(NDI, format = "markdown")
-```
-
-The output variable 'PC1' is the deprivation index score for each corresponding census tract (CT) in the analysis.  Higher index scores represent higher deprivation.  These scores can be explored on their own or exported for use in statistical models.  
+The output variable _NDI_ is the deprivation index score for each corresponding census tract (CT) in the analysis.  Higher index scores represent higher deprivation.  These scores can be explored on their own or exported for use in statistical models.  
 
 Here is the distribution of deprivation across tracts in Onondaga County, NY 
 
@@ -122,15 +80,15 @@ ggplot(NDI, aes(reorder(Tract, -PC1), PC1)) + geom_col(aes(fill = type)) + coord
   labs(fill = "", x = "Tract", y = "Deprivation Index")
 ```
 
-# Thematic Mapping
+## Thematic Mapping
 
-We can further explore the deprivation index by its spatial distribution.  For this we'll need the following packages:  
-
+We can further explore the deprivation index by its spatial distribution.  
 
 ``` {r, echo = TRUE}
-library(sf)
+#library(sf)
 library(tigris)
 options(tigris_class = "sf", tigris_use_cache = TRUE)
+
 ```
 
 
@@ -138,9 +96,10 @@ By mapping deprivation scores, we can see that high levels of deprivation concen
 
 
 ``` {r, echo = TRUE}
-## get census tracts 
+## get census tracts geometry
 tractsNY <- tracts(state = "NY",  county = "Onondaga County",
                  cb = TRUE)
+
 Map <- geo_join(tractsNY,NDI, by_sp = "GEOID", by_df = "GEOID")
 
 ggplot() + geom_sf(data = Map, aes(fill = PC1)) +
@@ -159,7 +118,7 @@ Map %>% filter(as.numeric(TRACTCE) < 6104) %>%
   ggtitle(" ", subtitle = "Syracuse, NY")
 ```
 
-## Additional examples using `countyND`
+## Additional examples using `ndi`
 
 Broward County, FL
 
@@ -169,7 +128,7 @@ tractsFL <- tracts(state = "FL",  county = "Broward",
                  cb = TRUE)
 Map2 <- geo_join(tractsFL,NDI2, by_sp = "GEOID", by_df = "GEOID")
 
-Map2 %>% filter(as.numeric(TRACTCE) < 980000) %>%  ## exclude Everglades Nat'l Park
+Map2 %>% filter(as.numeric(TRACTCE) < 980000) %>%  
 ggplot() + geom_sf(aes(fill = PC1)) +
   theme_minimal() + scale_fill_viridis()+
   labs(fill = "Index", caption = "Source: US Census ACS 2016 estimates")+
@@ -212,9 +171,11 @@ ggplot(NYND, aes(PC1, color = County)) + geom_density() +
 
 ``` {r, echo = TRUE, fig.height= 8, fig.width=10}
 
-#### map 
+## census tract geometry for NYS 
 tractsNY <- tracts(state = "NY",
                    cb = TRUE)
+
+## county geometry for NYS
 countiesNY <- counties(state = "NY", cb = TRUE)
 
 MapNY <- geo_join(tractsNY,NYND, by_sp = "GEOID", by_df = "GEOID")
