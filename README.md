@@ -40,12 +40,6 @@ library(tidycensus)
 library(tidyverse)
 library(psych)
 
-Sys.getenv("CENSUS_API_KEY")
-```
-
-    ## [1] "e372e284c5381fe44e39f649bb20dac827bd3a06"
-
-``` r
 source("R/ndi.R")
 
 ndi("NY","Onondaga")

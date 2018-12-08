@@ -9,6 +9,8 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE)
 
+Sys.getenv("CENSUS_API_KEY")
+
 library(knitr)
 
 ```
@@ -50,8 +52,6 @@ Messer and colleagues identified that the principal component extracted from eig
 library(tidycensus)
 library(tidyverse)
 library(psych)
-
-Sys.getenv("CENSUS_API_KEY")
 
 source("R/ndi.R")
 
