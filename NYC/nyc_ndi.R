@@ -102,13 +102,13 @@ geo <- st_erase(geo,
 map <- ggplot() + 
   geom_sf(data = geo, aes(fill = NDI), 
           color = NA) +
-  geom_sf(data = boro_bound,
-          fill = NA,
-          color = "#FFFFFF") +
+  #geom_sf(data = boro_bound,
+  #        fill = NA,
+  #        color = "#FFFFFF") +
   theme_minimal() + 
   theme(axis.text = element_blank(),
         legend.position = "bottom") +
-  scico::scale_fill_scico(palette = "nuuk") +
+  scico::scale_fill_scico(palette = "bilbao") +
   labs(fill = "NDI", 
        caption = "Source: 2013-2017 5-year ACS estimates")
 
