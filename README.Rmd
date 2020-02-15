@@ -1,13 +1,16 @@
 ---
 title: " "
 output: github_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   fig.path = "README_figs/README-",
   message = FALSE,
-  warning = FALSE)
+  warning = FALSE,
+  echo = FALSE)
 
 #Sys.getenv("CENSUS_API_KEY")
 
@@ -17,171 +20,171 @@ library(knitr)
 
 # Creating a Deprivation Index in R using Census estimates
 
-This is an R function to extract census variables and calculate a deprivation index. Index is based on methodology by [Messer and colleagues](https://www.ncbi.nlm.nih.gov/pubmed/17031568).  Function relies on the packages [tidycensus](https://walkerke.github.io/tidycensus/) by Kyle Walker and [psych](https://personality-project.org/r/psych/) by William Revelle. 
+This is an R function to extract census variables and calculate a deprivation index.  Census data fetched are American Community Survey (ACS) 5-year estimates. Manually extracting all these estimates from https://factfinder.census.gov is a time consuming process.   
+ 
+The index is based on methodology by [Messer and colleagues](https://www.ncbi.nlm.nih.gov/pubmed/17031568).  Messer and colleagues identified that the principal component extracted from eight variables (below), calculated from Census estimates, best represent neighborhood-level deprivation.  
 
-## Function
+- % with less than HS degree (25 years and over)  
 
-Before using the function, a Census API key is required: https://api.census.gov/data/key_signup.html.  Data fetched are American Community Survey (ACS) 5-year estimates. 
+- % in below poverty level  
 
-The purpose of this function is to minimize the time required to collect data. Extracting all these variables from https://factfinder.census.gov is a time consuming process.  
+- % of female-headed households with children uner 18  
 
-Messer and colleagues identified that the principal component extracted from eight specific variables best represent neighborhood-level deprivation.  Following their methods, this function collects census estimates and calculates the following variables:
+- % in management, science, and arts occupation  
 
-% with less than HS degree (25 years and over)
+- % in crowded households (greater than 1 occupant per room)  
 
-% in below poverty level
+- % with public assistance or food stamps  
 
-% of female-headed households with children uner 18
+- % unemployed (16-64 years old in labor force)  
 
-% in managment, science, and arts occupation
+- % with less than 30K annual household income  
 
-% in crowded households (greater than 1 occupant per room)
+## Usage  
 
-% with public assistance or food stamps
+`ndi` will extract Census estimates at the tract level, transform the variables, and then perform a Principal Component Analysis by using the arguments *State* and *County*.  Since this index has been previously validated, the function only extracts one component.  
 
-% unemployed (16-64 years old in labor force)
+#### Housekeeping  
 
-% with less than 30K annual household income
+Before using the function, a Census API key is required.  You can get one for free here: https://api.census.gov/data/key_signup.html.  
 
-### Using function
+To run this function, you'll need a few of the core [tidyverse](https://tidyverse.tidyverse.org/articles/paper.html) packages, as well as [tidycensus](https://walkerke.github.io/tidycensus/) by Kyle Walker and [psych](https://personality-project.org/r/psych/) by William Revelle.  
 
-`ndi` will extract census estimates at the tract level, transform the variables, and then perform a Principal Component Analysis by using the arguments *State* and *County*.  Since this index has been previously validated, the function only extracts one component.  
 
 ### Examples
 ``` {r, echo = TRUE}
+
 library(tidycensus)
 library(tidyverse)
 library(psych)
 
+#-- for plotting maps 
+library(tigris)
+options(tigris_class = "sf", 
+        tigris_use_cache = TRUE)
+
+#-- source script
 source("R/ndi.R")
 
+#-- index function 
 ndi("NY","Onondaga")
 
 ```
 
-The output variable _NDI_ is the deprivation index score for each corresponding census tract (CT) in the analysis.  Higher index scores represent higher deprivation.  These scores can be explored on their own or exported for use in statistical models.  
+The output variable _NDI_ is the deprivation index score for each corresponding census tract (CT) in the analysis.  **Higher index scores represent higher deprivation.**  These scores can be explored on their own or exported for use in statistical models.  
 
 Here is the distribution of deprivation across tracts in Onondaga County, NY 
 
-``` {r, echo = TRUE}
+``` {r}
 onondaga <- ndi("NY","Onondaga")
 
-ggplot(onondaga, aes(NDI)) + geom_histogram() + theme_classic()
+ggplot(onondaga, aes(NDI)) + 
+  geom_histogram() + 
+  theme_minimal()
 
 ```
 
 If we categorize census-tracts by Syracuse City CT and County CT, we can see that City tracts tend to have more deprived environments than County tracts.
 
-``` {r, echo = TRUE}
+``` {r}
 onondaga$type[as.numeric(onondaga$GEOID) < 36067006104] <- "City Tract"
-onondaga$type[as.numeric(onondaga$GEOID) >= 36067006104] <- "County Tract"
+onondaga$type[as.numeric(onondaga$GEOID) >= 36067006104] <- "County Tract" 
 
-ggplot(onondaga, aes(reorder(Tract, -NDI), NDI)) + geom_col(aes(fill = type)) + coord_flip() +
-  theme(axis.text.x = element_text(size = 8, color = "black"), 
-        axis.text.y = element_text(size = 4, color = "black")) +
+ggplot(onondaga, aes(NDI)) + 
+  geom_density(aes(fill = type),
+               color = NA,
+               alpha = .8) + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 8, 
+                                   color = "black"), 
+        axis.text.y = element_text(size = 4, 
+                                   color = "black")) +
   scale_fill_viridis_d(option = "cividis") + 
-  labs(fill = "", x = "Tract", y = "Deprivation Index")
+  labs(fill = "", 
+       y = "",
+       x = "Deprivation Index")
+
 ```
 
 ## Thematic Mapping
 
 We can further explore the deprivation index by its spatial distribution.  
 
-``` {r, echo = TRUE}
-library(tigris)
-options(tigris_class = "sf", tigris_use_cache = TRUE)
-
-```
-
-
 By mapping deprivation scores, we can see that high levels of deprivation concentrate within the City of Syracuse.  However, if we map deprivation for city tracts only, we can still see some variation in scores.
 
 
-``` {r, echo = TRUE}
+``` {r}
 ## get census tracts geometry
-tracts <- tracts(state = "NY",  county = "Onondaga County",
+tracts <- tracts(state = "NY",  
+                 county = "Onondaga County",
                  cb = TRUE)
 
-Map <- geo_join(tracts,onondaga, by_sp = "GEOID", by_df = "GEOID")
+Map <- geo_join(tracts, onondaga, 
+                by_sp = "GEOID", 
+                by_df = "GEOID")
 
-ggplot() + geom_sf(data = Map, aes(fill = NDI), color = NA) +
-  theme_minimal() + theme(axis.text = element_blank()) +
+ggplot() + 
+  geom_sf(data = Map, 
+          aes(fill = NDI), 
+          color = NA) +
+  theme_minimal() + 
+  theme(axis.text = element_blank()) +
   scale_fill_viridis_c() +
-  labs(fill = "Index", caption = "Source: US Census ACS 2016 estimates")+
-  ggtitle(" ", subtitle = "Onondaga County, NY")
+  labs(fill = "Index", 
+       caption = "Source: US Census ACS 2018 estimates")+
+  ggtitle(" ", 
+          subtitle = "Onondaga County, NY")
 
 ```
 
 
-``` {r, echo = TRUE}
+``` {r}
 ## filter by census tract code
-Map %>% filter(as.numeric(TRACTCE) < 6104) %>%
-  ggplot() + geom_sf(aes(fill = NDI), color = NA) +
-  theme_minimal() + theme(axis.text = element_blank()) +
+Map %>% 
+  filter(as.numeric(TRACTCE) < 6104) %>%
+  ggplot() + 
+  geom_sf(aes(fill = NDI), 
+          color = NA) +
+  theme_minimal() + 
+  theme(axis.text = element_blank()) +
   scale_fill_viridis_c() +
-  labs(fill = "Index", caption = "Source: US Census ACS 2016 estimates")+
-  ggtitle(" ", subtitle = "Syracuse, NY")
-```
-
-## Additional examples using `ndi`
-
-Broward County, FL
-
-``` {r, echo = TRUE}
-broward <- ndi("FL","Broward")
-
-tractsFL <- tracts(state = "FL",  county = "Broward",
-                 cb = TRUE)
-
-Map2 <- geo_join(tractsFL,broward, by_sp = "GEOID", by_df = "GEOID")
-
-Map2 %>% filter(as.numeric(TRACTCE) < 980000) %>%  
-ggplot() + geom_sf(aes(fill = NDI), color = NA) +
-  theme_minimal() + theme(axis.text = element_blank()) +
-  scale_fill_viridis_c(option = "inferno") +
-  labs(fill = "Index", caption = "Source: US Census ACS 2016 estimates")+
-  ggtitle(" ", subtitle = "Broward County, FL")
-
-```
-
-Virginia Beach, VA
-
-``` {r, echo = TRUE}
-### Virgina Beach
-NDI3 <- ndi("VA","Virginia Beach")
-
-tractsVA <- tracts(state = "VA",  county = "Virginia Beach",
-                   cb = TRUE)
-
-Map3 <- geo_join(tractsVA,NDI3, by_sp = "GEOID", by_df = "GEOID")
-
-ggplot() + geom_sf(data = Map3, aes(fill = NDI), color = NA) +
-  theme_minimal() + theme(axis.text = element_blank()) +
-  scale_fill_viridis_c(option = "magma") +
-  labs(fill = "Index", caption = "Source: US Census ACS 2016 estimates")+
-  ggtitle(" ", subtitle = "Virginia Beach, VA")
+  labs(fill = "Index", 
+       caption = "Source: US Census ACS 2018 estimates")+
+  ggtitle(" ", 
+          subtitle = "Syracuse, NY")
 ```
 
 
-## Deprivation Index function for entire State
+## Deprivation Index function for an entire State
 
-By ommiting the county argument, the function will perform the same analysis for the entire state listed. 
+By ommiting the county argument, the function will perform the same analysis for the entire state named. Additionally, you can find a New York City index [here](https://github.com/iecastro/deprivation-index/blob/master/NYC/nyc_ndi.R).
 
 
 ### Neighborhood deprivation across New York State
 
-``` {r, echo = TRUE, fig.height= 8, fig.width=10}
+``` {r, fig.height= 8, fig.width=10}
 
 nys_ndi <- ndi("NY")
 
-ggplot(nys_ndi, aes(NDI, color = County)) + geom_density() + 
-  theme_classic() +  guides(colour=FALSE) + 
-  scale_color_viridis_d() +
-  labs(x = "Deprivation Index for all Counties in NYS")
+nys_ndi %>% 
+  mutate(County = str_remove(County, "County"),
+         County = str_trim(County)) %>% 
+  ggplot(aes(fct_reorder(County, NDI), NDI)) + 
+  geom_boxplot(color = "#2B5385" ,
+               fill = NA,
+               outlier.size = rel(0.9),
+               outlier.colour = "#2B5385") + 
+  theme_minimal() + 
+  theme(axis.text.y = element_text(size = rel(0.65)),
+        axis.text = element_text(color = "black")) +
+  coord_flip() +
+  labs(x = "",
+       y = "Deprivation Index")
 
 ```
 
-``` {r, echo = TRUE, fig.height= 8, fig.width=10}
+
+``` {r, fig.height= 8, fig.width=10}
 
 ## census tract geometry for NYS 
 tractsNY <- tracts(state = "NY",
@@ -190,11 +193,125 @@ tractsNY <- tracts(state = "NY",
 ## county geometry for NYS
 countiesNY <- counties(state = "NY", cb = TRUE)
 
-MapNY <- geo_join(tractsNY,nys_ndi, by_sp = "GEOID", by_df = "GEOID")
+MapNY <- geo_join(tractsNY, nys_ndi, 
+                  by_sp = "GEOID", 
+                  by_df = "GEOID")
 
-ggplot() + geom_sf(data = MapNY, aes(fill = NDI), color = NA) +
-  geom_sf(data = countiesNY, fill = NA, color = "#ffffff", size = .3) + 
-  theme_minimal() + theme(axis.text = element_blank(), legend.position = "bottom") +
+ggplot() + 
+  geom_sf(data = MapNY, 
+          aes(fill = NDI), 
+          color = NA) +
+  geom_sf(data = countiesNY, 
+          fill = NA, 
+          color = "#ffffff", 
+          size = .3) + 
+  theme_minimal() + 
+  theme(axis.text = element_blank(), 
+        legend.position = "bottom") +
   scale_fill_viridis_c(option = "inferno") +
-  labs(fill = "Index",caption ="Data: 2016 ACS 5-year estimates") 
+  labs(fill = "Index",
+       caption ="Data: 2018 ACS 5-year estimates") 
 ```
+
+### The 5 Boroughs
+
+```{r, fig.retina=3}
+
+knitr::include_graphics("NYC/README_files/figure-gfm/unnamed-chunk-1-1.png")
+
+```
+
+
+## Additional examples using `ndi`
+
+**Broward County, FL**
+
+``` {r}
+broward <- ndi("FL","Broward")
+
+tractsFL <- tracts(state = "FL",  
+                   county = "Broward",
+                   cb = TRUE)
+
+Map2 <- geo_join(tractsFL, broward, 
+                 by_sp = "GEOID", 
+                 by_df = "GEOID")
+
+Map2 %>% 
+  filter(as.numeric(TRACTCE) < 980000) %>%  
+  ggplot() + 
+  geom_sf(aes(fill = NDI), 
+          color = NA) +
+  theme_minimal() + 
+  theme(axis.text = element_blank()) +
+  scale_fill_viridis_c(option = "inferno") +
+  labs(fill = "Index", 
+       caption = "Source: US Census ACS 2018 estimates")
+
+```
+
+**Virginia Beach, VA**
+
+``` {r}
+### Virgina Beach
+NDI3 <- ndi("VA","Virginia Beach")
+
+tractsVA <- tracts(state = "VA",  
+                   county = "Virginia Beach",
+                   cb = TRUE)
+
+Map3 <- geo_join(tractsVA, NDI3, 
+                 by_sp = "GEOID", 
+                 by_df = "GEOID")
+
+ggplot() + 
+  geom_sf(data = Map3, 
+          aes(fill = NDI), 
+          color = NA) +
+  theme_minimal() + 
+  theme(axis.text = element_blank()) +
+  scale_fill_viridis_c(option = "magma") +
+  labs(fill = "Index", 
+       caption = "Source: US Census ACS 2018 estimates")
+```
+
+
+**New England**
+
+```{r}
+ne_states <- c("ME", "VT", "RI",
+               "NH", "MA", "CT")
+
+new_england_ndi <- ndi(ne_states)
+
+tractsNE <- purrr::reduce(
+  purrr::map(ne_states, function(x) {
+    tracts(state = x,
+           cb = TRUE)
+  }),
+  rbind
+)
+
+ne_map <- geo_join(tractsNE, 
+                   new_england_ndi, 
+                   by_sp = "GEOID", 
+                   by_df = "GEOID")
+
+ggplot() + 
+  geom_sf(data = ne_map, 
+          aes(fill = NDI), 
+          color = NA) +
+  geom_sf(data = ne_map %>% 
+            group_by(State) %>% 
+            summarise(),
+          color = "#FFFFFF",
+          fill = NA) +
+  theme_minimal() + 
+  theme(axis.text = element_blank()) +
+  scico::scale_fill_scico(palette = "tokyo")  +
+  labs(fill = "Index", 
+       caption = "Source: US Census ACS 2018 estimates")
+
+```
+
+
