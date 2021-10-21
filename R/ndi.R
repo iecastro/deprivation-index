@@ -57,7 +57,7 @@ ndi <- function(state,county){
     dplyr::select(NAME, 
                   GEOID, 
                   PC1, 
-                  57:64) %>% 
+                  53:61) %>% 
     tidyr::separate(NAME, 
                     into = c("Tract", "County", "State"), 
                     sep = ",") %>% 

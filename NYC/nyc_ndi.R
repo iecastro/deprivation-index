@@ -41,7 +41,7 @@ ND <- principal(values,nfactors = 1)
 NDI <- cbind(acs_data,ND$scores) 
 
 NDI <- NDI %>% 
-  select(NAME,GEOID,PC1,57:64) %>% 
+  select(NAME,GEOID,PC1,53:61) %>% 
   separate(NAME, 
            into = c("Tract", "County","State"), 
            sep = ",") %>% 
@@ -96,8 +96,9 @@ ny_water <- ny_water %>%
   st_transform(proj)
 
 #--- remove water tracts
-geo <- st_erase(geo,
-                ny_water)
+# geo <- st_erase(geo,
+#                 ny_water) # not working anymore
+                            # getting self-intersection error
 
 #--- visualize
 map <- ggplot() + 
