@@ -21,10 +21,11 @@ ndi <- function(state,county){
                                   variables = vars,
                                   state = state,  
                                   county = county,
-                                  output = "wide") %>%
+                                  output = "wide",
+                                  year = 2018) %>% # hard code year until new vars are identified
     dplyr::mutate(pct_poverty = B17001_002E / B17001_001E,
            pct_noHS = B06009_002E / B06009_001E,
-           pct_FHH = B09008_011E / B09008_001E,
+           pct_FHH = B09008_011E / B09008_001E, #variable changed in 2019 ACS
            pct_mgmt = B08124_002E /  B08124_001E, 
            pct_crowd =  (B25014_005E + B25014_006E + B25014_007E + 
                            B25014_011E + B25014_012E + B25014_013E) / B25014_001E,
